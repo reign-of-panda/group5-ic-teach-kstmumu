@@ -35,12 +35,10 @@ class LHCb:
             dataF = dataF[mask]
         return dataF
 
-    def probability_filter(self):
+    def probability_assignment(self):
         """
-        Filtering the data based on the probabilities
+        Assigning probability variables
         """
-        
-        # Probalibities
         mu_plus_ProbNNmu = self.dF['mu_plus_MC15TuneV1_ProbNNmu']
         mu_minus_ProbNNmu = self.dF['mu_minus_MC15TuneV1_ProbNNmu']
         mu_plus_ProbNNp = self.dF["mu_plus_MC15TuneV1_ProbNNp"]
@@ -63,36 +61,65 @@ class LHCb:
         self.dF['accept_muon'] = self.dF[['mu_plus_MC15TuneV1_ProbNNmu', 'mu_plus_MC15TuneV1_ProbNNmu']].max(axis=1)
         self.dF['dilepton_mass'] = self.Mass(self.dF['mu_minus_PE'],self.dF['mu_minus_P']) + self.Mass(self.dF['mu_plus_PE'],self.dF['mu_plus_P'])
         
-        self.dF_unfiltered = self.dF
-
-        # Probability selections (based on CERN paper)
-        self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05)
-        self.dF = self.apply_selection_threshold(self.dF, 'accept_pion', 0.1)
-        self.dF = self.apply_selection_threshold(self.dF, 'accept_muon', 0.2)
-        self.dF_filtered_out = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05, opposite=True)
-        self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'accept_pion', 0.1, opposite=True)], ignore_index=True).drop_duplicates()
-        self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'accept_muon', 0.2, opposite=True)], ignore_index=True).drop_duplicates()
+    def probability_filter(self):
+        """
+        Filtering the data based on the probabilities
+        """
         
+        if order == 0:
+            self.dF_unfiltered = self.dF
+    
+            # Probability selections (based on CERN paper)
+            self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05)
+            self.dF = self.apply_selection_threshold(self.dF, 'accept_pion', 0.1)
+            self.dF = self.apply_selection_threshold(self.dF, 'accept_muon', 0.2)
+            self.dF_filtered_out = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05, opposite=True)
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'accept_pion', 0.1, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'accept_muon', 0.2, opposite=True)], ignore_index=True).drop_duplicates()
+        else:
+            self.dF = self.apply_selection_threshold(self.dF, 'accept_kaon', 0.05)
+            self.dF = self.apply_selection_threshold(self.dF, 'accept_pion', 0.1)
+            self.dF = self.apply_selection_threshold(self.dF, 'accept_muon', 0.2)
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05, opposite=True)], ignore_index = True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'accept_pion', 0.1, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'accept_muon', 0.2, opposite=True)], ignore_index=True).drop_duplicates()
+             
+            print(len(self.dF),len(self.dF_unfiltered),len(self.dF_filtered_out)) 
+            
     def trasv_mom_filter(self):
         
-        # Transverse momenta selections (based on CERN paper)
-        self.dF = self.apply_selection_threshold(self.dF, 'mu_plus_PT', 800)
-        self.dF = self.apply_selection_threshold(self.dF, 'mu_minus_PT', 800)
-        self.dF = self.apply_selection_threshold(self.dF, 'K_PT', 250)
-        self.dF = self.apply_selection_threshold(self.dF, 'Pi_PT', 250)
-        self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
-        self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_minus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
-        self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'K_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
-        self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
-        
-        print(len(self.dF),len(self.dF_unfiltered),len(self.dF_filtered_out))
-
-        # Masses selection (based on CERN paper)
-        # Seems already included unless I am mistaken
-        
-        # K, Pi, mu: chi_IP^2 > 9 definitely already included in the data not needed to select on it
-        # Bo: DIRA > 0.9995 already included in the data
-        # Bo: chi_IP^2 < 25 already included in the data (actually < 16)
+        if order == 0:
+           self.dF_unfiltered = self.dF
+           
+           # Transverse momenta selections (based on CERN paper)
+           self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 800)
+           self.dF = self.apply_selection_threshold(self.dF, 'mu_minus_PT', 800)
+           self.dF = self.apply_selection_threshold(self.dF, 'K_PT', 250)
+           self.dF = self.apply_selection_threshold(self.dF, 'Pi_PT', 250)
+           self.dF_filtered_out = self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 800, opposite=True)
+           self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_minus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
+           self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'K_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
+           self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
+                       
+        else:
+            # Transverse momenta selections (based on CERN paper)
+            self.dF = self.apply_selection_threshold(self.dF, 'mu_plus_PT', 800)
+            self.dF = self.apply_selection_threshold(self.dF, 'mu_minus_PT', 800)
+            self.dF = self.apply_selection_threshold(self.dF, 'K_PT', 250)
+            self.dF = self.apply_selection_threshold(self.dF, 'Pi_PT', 250)
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_minus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'K_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
+            
+            print(len(self.dF),len(self.dF_unfiltered),len(self.dF_filtered_out))
+    
+            # Masses selection (based on CERN paper)
+            # Seems already included unless I am mistaken
+            
+            # K, Pi, mu: chi_IP^2 > 9 definitely already included in the data not needed to select on it
+            # Bo: DIRA > 0.9995 already included in the data
+            # Bo: chi_IP^2 < 25 already included in the data (actually < 16)
 
     def intermediary_plotting(self):
         # Some plotting
@@ -106,10 +133,10 @@ class LHCb:
         
         # Fitting to the invariant mass plot
         def gauss_exp(x, a, b, c, e, f):
-            return a * np.exp(-((x-b)**2)/2*c**2) + np.exp(e*x +f)
+            return a * np.exp(-((x-b)**2)/2/c**2) + np.exp(e*x +f)
         
         def gauss(x, a, b, c):
-            return a * np.exp(-((x-b)**2)/2*c**2)
+            return a * np.exp(-((x-b)**2)/2/c**2)
         
         def exp_tail(x, b, c):
             return np.exp(b*x +c)
@@ -375,17 +402,28 @@ class LHCb:
     def run_analysis(self):
         """
         Runs the analysis
+        
+        set order = 0 to apply probability filter then transverse momentum filter
+        set order = 1 to apply transverse momentum filter then probability filter
+        
         """
+        order = 1
         # Use the filtering functions first
-        self.probability_filter()
-        self.trasv_mom_filter()
+        self.probability_assignment()
+        if order == 0:
+            self.probability_filter(order)
+            self.trasv_mom_filter(1-order)
+        elif order == 1:
+            self.trasv_mom_filter(1-order)
+            self.probability_filter(order)            
+            
         # Intermediary plot - comment out if not needed
         self.intermediary_plotting()
         # Separate q bins and Standard Model values
         self.q_separate()
         self.fit_observable()
         self.plot_observable()
-        
+
 if __name__ == '__main__':
     CERN_Stuff = LHCb()
     CERN_Stuff.run_analysis()
