@@ -18,6 +18,8 @@ class LHCb:
         file_path = folder_path + file_name
         self.dF = pd.read_csv(file_path)
         
+        self.dF_unfiltered = self.dF
+        
     def Mass(self, PE, P):
         """
         Returns the mass in units of MeV/c^2
@@ -61,13 +63,13 @@ class LHCb:
         self.dF['accept_muon'] = self.dF[['mu_plus_MC15TuneV1_ProbNNmu', 'mu_plus_MC15TuneV1_ProbNNmu']].max(axis=1)
         self.dF['dilepton_mass'] = self.Mass(self.dF['mu_minus_PE'],self.dF['mu_minus_P']) + self.Mass(self.dF['mu_plus_PE'],self.dF['mu_plus_P'])
         
-    def probability_filter(self):
+    def probability_filter(self, order):
         """
         Filtering the data based on the probabilities
         """
         
         if order == 0:
-            self.dF_unfiltered = self.dF
+            # self.dF_unfiltered = self.dF
     
             # Probability selections (based on CERN paper)
             self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05)
@@ -86,7 +88,7 @@ class LHCb:
              
             print(len(self.dF),len(self.dF_unfiltered),len(self.dF_filtered_out)) 
             
-    def trasv_mom_filter(self):
+    def trasv_mom_filter(self, order):
         
         if order == 0:
            self.dF_unfiltered = self.dF
@@ -120,12 +122,20 @@ class LHCb:
             # K, Pi, mu: chi_IP^2 > 9 definitely already included in the data not needed to select on it
             # Bo: DIRA > 0.9995 already included in the data
             # Bo: chi_IP^2 < 25 already included in the data (actually < 16)
+            
+    def chi_sq_filter(self):
+        for chi2_param in ['mu_plus_IPCHI2_OWNPV','mu_minus_IPCHI2_OWNPV','K_IPCHI2_OWNPV', 'Pi_IPCHI2_OWNPV']:
+            self.dF = self.apply_selection_threshold(self.dF, chi2_param , 225)
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, chi2_param, 225, opposite=True)], ignore_index=True).drop_duplicates()
+
+        self.dF = self.apply_selection_threshold(self.dF, 'B0_IPCHI2_OWNPV', 8.07, opposite = True)
+        self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'B0_IPCHI2_OWNPV', 8.07, opposite=False)], ignore_index=True).drop_duplicates()
 
     def intermediary_plotting(self):
         # Some plotting
-        n1, bin1, patches1 = plt.hist(self.dF_unfiltered['B0_MM'], range=[5170, 5600], bins=300, zorder=1)
-        n2, bin2, patches2 = plt.hist(self.dF['B0_MM'], range=[5170, 5600], bins=300, zorder=3)
-        n3, bin3, patches3 = plt.hist(self.dF_filtered_out['B0_MM'], range=[5170, 5600], bins=300, zorder=2)
+        n1, bin1, patches1 = plt.hist(self.dF_unfiltered['B0_MM'], range=[5170, 5600], bins=300, zorder=1, histtype = "step")
+        n2, bin2, patches2 = plt.hist(self.dF['B0_MM'], range=[5170, 5600], bins=300, zorder=3, histtype = "step")
+        n3, bin3, patches3 = plt.hist(self.dF_filtered_out['B0_MM'], range=[5170, 5600], bins=300, zorder=2, histtype = "step")
         plt.title('Invariant Mass of $B_0$ with & without background')
         plt.xlabel('MM($B_0$)(MeV/$c^2$)')
         plt.ylabel('Number of Candidates')
@@ -157,10 +167,10 @@ class LHCb:
         guess2 = [7000, 5270, 20]
         params2, cov2 = curve_fit(gauss, bin2_alt, n2, p0=guess2)
         
-        guess3 = [-0.0007, 9.5]
-        params3, cov3 = curve_fit(exp_tail, bin3_alt, n3, p0 = guess3)
+        guess3 = [3000, 5270, 20] + [-0.0007, 9.5]
+        params3, cov3 = curve_fit(gauss_exp, bin3_alt, n3, p0 = guess3)
         
-        guess1 = params2.tolist() + params3.tolist()
+        guess1 = params2.tolist() + params3.tolist()[-2:]
         
         params1, cov1 = curve_fit(gauss_exp, bin1_alt, n1, p0 = guess1)
         
@@ -168,12 +178,12 @@ class LHCb:
         x_fit = np.linspace(5170, 5600, 500)
         fit1 = gauss_exp(x_fit, *params1)
         fit2 = gauss(x_fit, *params2)
-        fit3 = exp_tail(x_fit, *params3)
+        fit3 = gauss_exp(x_fit, *params3)
         
-        plt.plot(x_fit, fit1, color = "skyblue", zorder=4)
-        plt.plot(x_fit, fit2, color = "pink", zorder=5)
-        plt.plot(x_fit, fit3, color = "black", zorder=6)
-        plt.show()
+        # plt.plot(x_fit, fit1, color = "blue", zorder=4)
+        # plt.plot(x_fit, fit2, color = "red", zorder=5)
+        # plt.plot(x_fit, fit3, color = "black", zorder=6)
+        # plt.show()
 
     # """
     # First thing to do is to split up total data in bins based on q^2 range. 
@@ -189,7 +199,7 @@ class LHCb:
                     [15.0,17.0],[17.0,19.0],[11.0,12.5],[1.0,6.0],[15.0,17.9]]
         q_ranges_paper = [[0.01,2.0],[2.0,4.0],[4.0,8.5],[10.0,13.0],[14.5,16.0],[16.0,23.0]]
         
-        for q_range in q_ranges_paper:
+        for q_range in q_ranges:
             mask = (self.dF['q2'] > q_range[0]) & (self.dF['q2'] < q_range[1])
             bin = self.dF[mask]
             self.bins.append(bin)
@@ -407,7 +417,7 @@ class LHCb:
         set order = 1 to apply transverse momentum filter then probability filter
         
         """
-        order = 1
+        order = 0
         # Use the filtering functions first
         self.probability_assignment()
         if order == 0:
@@ -416,6 +426,8 @@ class LHCb:
         elif order == 1:
             self.trasv_mom_filter(1-order)
             self.probability_filter(order)            
+            
+        self.chi_sq_filter()
             
         # Intermediary plot - comment out if not needed
         self.intermediary_plotting()
