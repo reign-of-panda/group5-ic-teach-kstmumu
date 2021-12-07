@@ -53,43 +53,75 @@ class LHCb:
             dataF = dataF[mask]
         return dataF
     
+    def apply_selection_threshold_for_lambda(self, dataF, column, threshold, opposite=False):
+        """
+        Generic function for applying a selection criteria
+        """
+        mask = (dataF[column] >= threshold)
+        if opposite == True:
+            dataF = dataF[~mask]
+        else:
+            dataF = dataF[mask]
+        return dataF
     
-    
+
     def peaking(self): 
-        """
-        Taking away peaking backgrounds via reconstruction (includes phimumu, 
-                                                            and the 2 lambda).
-        """
-        #phimumu 
-        pmm_bg = "/phimumu.csv"
-        pmm_bg_path = self.folder_path + pmm_bg
-        phimumu_data = pd.read_csv(pmm_bg_path)
-        
-        Phi_M = peaking_functions.phimumu(self.dF)
-        Phi_M_bg = peaking_functions.phimumu(phimumu_data)
-        mu, sigma = sp.stats.norm.fit(Phi_M_bg)
-        mask = (Phi_M >= mu+sigma)
-        self.dF = self.dF[mask]
-        
-        #pKmumu_piTok_kTop
-        
-#        lambda2 = "\pKmumu_piTok_kTop"
-#        lambda2_path = self.folder_path + lambda2
-#        lambda2_data = pd.read_csv(lambda2_path)
-#        lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
-#        
-#        lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
-#        lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
-#        mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
-#        low = mu - sigma
-#        high = mu + sigma
-#        
-#        mask = (lambda2_M < low ) | (lambda2_M > high )
-#        self.dF=self.dF[mask]
-
-
-
-
+            """
+            Taking away peaking backgrounds via reconstruction (includes phimumu, 
+                                                                and the 2 lambda).
+            """
+            #phimumu 
+            pmm_bg = "/phimumu.csv"
+            pmm_bg_path = self.folder_path + pmm_bg
+            phimumu_data = pd.read_csv(pmm_bg_path)
+            
+            Phi_M = peaking_functions.phimumu(self.dF)
+            Phi_M_bg = peaking_functions.phimumu(phimumu_data)
+            mu, sigma = sp.stats.norm.fit(Phi_M_bg)
+            # mask = (Phi_M >= mu+sigma)
+            # mask2 = (Phi_M >= mu+sigma)
+            self.dF['Phi_M'] = Phi_M
+            self.dF = self.apply_selection_threshold(self.dF, 'Phi_M', mu+sigma)
+            self.dF_filtered_out = self.apply_selection_threshold(self.dF_filtered_out, 'Phi_M', mu+sigma, opposite=True)
+            
+            
+            self.dF = self.dF[mask]
+            self.dF_filtered_out = self.dF_filtered_out[~mask]
+            
+            
+            #pKmumu_piTop
+            lambda1 = "\pKmumu_piTop.csv"
+            lambda1_path = self.folder_path + lambda1
+            lambda1_data = pd.read_csv(lambda1_path)
+            lambda1_M = peaking_functions.pKmumu_piTop(self.dF)
+            
+            lambda1_M = peaking_functions.pKmumu_piTop(self.dF)
+            lambda1_M_bg = peaking_functions.pKmumu_piTop(lambda1_data)
+            mu, sigma = sp.stats.norm.fit(lambda1_M_bg)
+            low = mu - sigma
+            high = mu + sigma
+            
+            mask = (lambda1_M < low ) | (lambda1_M > high )
+            self.dF=self.dF[mask]
+            self.dF_filtered_out = self.dF_filtered_out[~mask]
+      
+            
+            #pKmumu_piTok_kTop
+            
+            lambda2 = "\pKmumu_piTok_kTop.csv"
+            lambda2_path = self.folder_path + lambda2
+            lambda2_data = pd.read_csv(lambda2_path)
+            lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
+            
+            lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
+            lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
+            mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
+            low = mu - sigma
+            high = mu + sigma
+            
+            mask = (lambda2_M < low ) | (lambda2_M > high )
+            self.dF=self.dF[mask]
+            self.dF_filtered_out = self.dF_filtered_out[~mask]
 
 
     def probability_assignment(self):
@@ -127,35 +159,35 @@ class LHCb:
             # self.dF_unfiltered = self.dF
 
             # Probability selections (based on CERN paper)
-            self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05)
+            self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.1)
             self.dF = self.apply_selection_threshold(self.dF, 'accept_pion', 0.1)
-            self.dF = self.apply_selection_threshold(self.dF, 'accept_muon', 0.2)
-            self.dF_filtered_out = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05,
+            # self.dF = self.apply_selection_threshold(self.dF, 'accept_muon', 0.2)
+            self.dF_filtered_out = self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.1,
                                                                   opposite=True)
             self.dF_filtered_out = pd.concat([self.dF_filtered_out,
                                               self.apply_selection_threshold(self.dF_unfiltered, 'accept_pion', 0.1,
                                                                              opposite=True)],
                                              ignore_index=True).drop_duplicates()
-            self.dF_filtered_out = pd.concat([self.dF_filtered_out,
-                                              self.apply_selection_threshold(self.dF_unfiltered, 'accept_muon', 0.2,
-                                                                             opposite=True)],
-                                             ignore_index=True).drop_duplicates()
+            # self.dF_filtered_out = pd.concat([self.dF_filtered_out,
+            #                                   self.apply_selection_threshold(self.dF_unfiltered, 'accept_muon', 0.2,
+            #                                                                  opposite=True)],
+            #                                  ignore_index=True).drop_duplicates()
         else:
-            self.dF = self.apply_selection_threshold(self.dF, 'accept_kaon', 0.05)
+            self.dF = self.apply_selection_threshold(self.dF, 'accept_kaon', 0.1)
             self.dF = self.apply_selection_threshold(self.dF, 'accept_pion', 0.1)
-            self.dF = self.apply_selection_threshold(self.dF, 'accept_muon', 0.2)
+            # self.dF = self.apply_selection_threshold(self.dF, 'accept_muon', 0.2)
             self.dF_filtered_out = pd.concat([self.dF_filtered_out,
-                                              self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.05,
+                                              self.apply_selection_threshold(self.dF_unfiltered, 'accept_kaon', 0.1,
                                                                              opposite=True)],
                                              ignore_index=True).drop_duplicates()
             self.dF_filtered_out = pd.concat([self.dF_filtered_out,
                                               self.apply_selection_threshold(self.dF_unfiltered, 'accept_pion', 0.1,
                                                                              opposite=True)],
                                              ignore_index=True).drop_duplicates()
-            self.dF_filtered_out = pd.concat([self.dF_filtered_out,
-                                              self.apply_selection_threshold(self.dF_unfiltered, 'accept_muon', 0.2,
-                                                                             opposite=True)],
-                                             ignore_index=True).drop_duplicates()
+            # self.dF_filtered_out = pd.concat([self.dF_filtered_out,
+            #                                   self.apply_selection_threshold(self.dF_unfiltered, 'accept_muon', 0.2,
+            #                                                                  opposite=True)],
+            #                                  ignore_index=True).drop_duplicates()
 
             print(len(self.dF), len(self.dF_unfiltered), len(self.dF_filtered_out))
 
@@ -165,33 +197,33 @@ class LHCb:
             self.dF_unfiltered = self.dF
 
             # Transverse momenta selections (based on CERN paper)
-            self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 800)
-            self.dF = self.apply_selection_threshold(self.dF, 'mu_minus_PT', 800)
-            self.dF = self.apply_selection_threshold(self.dF, 'K_PT', 250)
-            self.dF = self.apply_selection_threshold(self.dF, 'Pi_PT', 250)
+            self.dF = self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 3330)
+            self.dF = self.apply_selection_threshold(self.dF, 'mu_minus_PT', 1000)
+            self.dF = self.apply_selection_threshold(self.dF, 'K_PT', 1000)
+            # self.dF = self.apply_selection_threshold(self.dF, 'Pi_PT', 250)
             self.dF_filtered_out = self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 800, opposite=True)
             self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_minus_PT', 800,opposite=True)], ignore_index=True).drop_duplicates()
             self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'K_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
-            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
+            # self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
 
         else:
             # Transverse momenta selections (based on CERN paper)
-            self.dF = self.apply_selection_threshold(self.dF, 'mu_plus_PT', 800)
-            self.dF = self.apply_selection_threshold(self.dF, 'mu_minus_PT', 800)
-            self.dF = self.apply_selection_threshold(self.dF, 'K_PT', 250)
-            self.dF = self.apply_selection_threshold(self.dF, 'Pi_PT', 250)
-            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
-            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_minus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
-            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'K_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
-            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF = self.apply_selection_threshold(self.dF, 'mu_plus_PT', 3330)
+            self.dF = self.apply_selection_threshold(self.dF, 'mu_minus_PT', 1000)
+            self.dF = self.apply_selection_threshold(self.dF, 'K_PT', 1000)
+            # self.dF = self.apply_selection_threshold(self.dF, 'Pi_PT', 250)
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_plus_PT', 3330, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'mu_minus_PT', 1000, opposite=True)], ignore_index=True).drop_duplicates()
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'K_PT', 1000, opposite=True)], ignore_index=True).drop_duplicates()
+            # self.dF_filtered_out = pd.concat([self.dF_filtered_out, self.apply_selection_threshold(self.dF_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
 
             print(len(self.dF), len(self.dF_unfiltered), len(self.dF_filtered_out))
 
     def chi_sq_filter(self):
         for chi2_param in ['mu_plus_IPCHI2_OWNPV', 'mu_minus_IPCHI2_OWNPV', 'K_IPCHI2_OWNPV', 'Pi_IPCHI2_OWNPV']:
-            self.dF = self.apply_selection_threshold(self.dF, chi2_param, 225)
+            self.dF = self.apply_selection_threshold(self.dF, chi2_param, 16)
             self.dF_filtered_out = pd.concat([self.dF_filtered_out,
-                                              self.apply_selection_threshold(self.dF_unfiltered, chi2_param, 225,
+                                              self.apply_selection_threshold(self.dF_unfiltered, chi2_param, 16,
                                                                              opposite=True)],
                                              ignore_index=True).drop_duplicates()
 
@@ -200,6 +232,19 @@ class LHCb:
                                           self.apply_selection_threshold(self.dF_unfiltered, 'B0_IPCHI2_OWNPV', 8.07,
                                                                          opposite=False)],
                                          ignore_index=True).drop_duplicates()
+        
+    def from_sensitivity_analysis(self):
+        params = ['B0_MM', 'J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
+        cuts = [5250, 1725, 2.4, 20000, 0.52]
+        length = len(cuts)
+        
+        for i in range(length):
+            self.dF = self.apply_selection_threshold(self.dF, params[i], cuts[i])
+            self.dF_filtered_out = pd.concat([self.dF_filtered_out,
+                                              self.apply_selection_threshold(self.dF_unfiltered, params[i], cuts[i],
+                                                                             opposite=True)],
+                                             ignore_index=True).drop_duplicates()
+        
 
     def intermediary_plotting(self):
         # Some plotting
@@ -258,7 +303,7 @@ class LHCb:
     def totaldata_backgr_acc(self):
         self.legobj_backgr_k, self.legobj_backgr_l, self.legobj_backgr_p = Background.background(self.dF, total=True)
         
-        self.acceptance_k, self.acceptance_l, self.x_interval_for_leg = Acceptance.acceptance(self.folder_path,self.acceptance_file)
+        self.acceptance_k, self.acceptance_l, self.acceptance_p, self.x_interval_for_leg = Acceptance.acceptance(self.folder_path,self.acceptance_file)
         self.legendre_k = L.legfit(self.x_interval_for_leg, self.acceptance_k, self.max_degree)
         self.legendre_l = L.legfit(self.x_interval_for_leg, self.acceptance_l, self.max_degree)
         self.legendre_p = L.legfit(self.x_interval_for_leg, self.acceptance_p, self.max_degree)
@@ -393,16 +438,16 @@ class LHCb:
             plt.figure()
             plt.title("Values of $F_{L}$ for all 3 distributions (l, k \& phi) per $q^2$ bin")
             plt.errorbar(range(0, len(self.bins)), self.fls_p, yerr=self.fl_errs_p, marker='x', markersize=6,
-                         linestyle='none')
+                          linestyle='none')
             plt.errorbar(range(0, len(self.bins)), self.fls_l, yerr=self.fl_errs_l, marker='x', markersize=6,
-                         linestyle='none')
+                          linestyle='none')
             plt.errorbar(range(0, len(self.bins)), self.fls_k, yerr=self.fl_errs_k, marker='x', markersize=6,
-                         linestyle='none')
+                          linestyle='none')
             plt.errorbar(range(0, len(self.bins)), df_pred['fl_Si'], yerr=df_pred['fl_Si_err'], marker='x', markersize=6,
                          linestyle='none')
             plt.errorbar(range(0, len(self.bins)), df_pred['fl_Pi'], yerr=df_pred['fl_Pi_err'], marker='x', markersize=6,
                          linestyle='none')
-            plt.legend(['$F_{Lphi}$', '$F_{Ll}$', '$F_{Lk}$','$Fl_{Pred_S}$','$Fl_{Pred_P}$'])
+            plt.legend(['$F_{Lphi}$', '$F_{Ll}$', '$F_{Lk}$','$Fl_{Pred_S}$','$Fl_{Pred_P}$'], bbox_to_anchor = (1, 0.5))
             plt.grid()
             plt.show()
 
@@ -435,7 +480,32 @@ class LHCb:
             plt.legend(['$A_{im}$','$A_{im, Pred}$'])
             plt.grid()
             plt.show()
-
+            
+    def save_plotting_data(self):
+        """
+        Saves some of the data so that we can make prettier plots
+        """
+        saving_directory = "D:/OneDrive - Imperial College London/Imperial College London/Module Content/Year 3/Problem Solving/plot_data"
+        self.dF.to_csv(saving_directory + "/Filtered_data.csv") 
+        self.dF_filtered_out.to_csv(saving_directory + "/Filtered_out_data.csv")
+        
+        df_pred = Predictions.predictions()
+        df_pred.to_csv(saving_directory + "/Predictions.csv")
+        
+        # Observables
+        fl_val = np.array([self.fls_p, self.fls_l, self.fls_k, self.fl_errs_p, self.fl_errs_l, self.fl_errs_k])
+        afb_val_err = np.array([self.afbs, self.afb_errs])
+        aims_val = np.array([self.aims, self.aim_errs])
+        
+        dF_fl = pd.DataFrame(data = fl_val.transpose(), columns=['fls_p', 'fls_l', 'fls_k', 'fl_errs_p', 'fl_errs_l', 'fl_errs_k'])
+        dF_afb = pd.DataFrame(data = afb_val_err.transpose(), columns = ['afbs', 'afb_errs'])
+        dF_aims = pd.DataFrame(data = aims_val.transpose(), columns = ['aims', 'aim_errs'])
+        
+        # Save this
+        dF_fl.to_csv(saving_directory + "/fl_vals.csv")
+        dF_afb.to_csv(saving_directory + "/afb_vals.csv")
+        dF_aims.to_csv(saving_directory + "/aim_vals.csv")
+        
     def run_analysis(self):
         """
         Runs the analysis
@@ -456,6 +526,7 @@ class LHCb:
             
         self.chi_sq_filter()
         self.peaking()
+        self.from_sensitivity_analysis()
 
 
         # Intermediary plot - comment out if not needed
@@ -466,6 +537,8 @@ class LHCb:
         self.q_separate()
         self.backgr_acceptance_fit_observables()
         self.plot_observable()
+        
+        self.save_plotting_data()
 
 
 if __name__ == '__main__':

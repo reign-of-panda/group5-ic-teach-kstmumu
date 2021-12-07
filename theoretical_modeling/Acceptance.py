@@ -11,10 +11,12 @@ from scipy.optimize import curve_fit
 from scipy.special import legendre
 from numpy.polynomial import legendre as L
 from iminuit import Minuit
+import peaking_functions
 
-def acceptance():
-    folder_path = "/Users/raymondvanes/Downloads/splitcsv_acceptance"
-    file_name = "/acceptance_mc-3.csv"
+
+def acceptance(folder_path, file_name):
+    # folder_path = "/Users/raymondvanes/Downloads/splitcsv_acceptance"
+    # file_name = "/acceptance_mc-3.csv"
     file_path = folder_path + file_name
     dF_acc = pd.read_csv(file_path)
     print('Reading acceptance file done')
@@ -34,23 +36,100 @@ def acceptance():
     dF_acc_unfiltered = dF_acc
 
     # Apply selection criteria to acceptance data
-    dF_acc = apply_selection_threshold(dF_acc_unfiltered, 'accept_kaon', 0.05)
+    dF_acc = apply_selection_threshold(dF_acc_unfiltered, 'accept_kaon', 0.1)
     dF_acc = apply_selection_threshold(dF_acc, 'accept_pion', 0.1)
-    dF_acc = apply_selection_threshold(dF_acc, 'accept_muon', 0.2)
-    dF_acc_filtered_out = apply_selection_threshold(dF_acc_unfiltered, 'accept_kaon', 0.05, opposite=True)
+    # dF_acc = apply_selection_threshold(dF_acc, 'accept_muon', 0.2)
+    dF_acc_filtered_out = apply_selection_threshold(dF_acc_unfiltered, 'accept_kaon', 0.1, opposite=True)
     dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'accept_pion', 0.1, opposite=True)], ignore_index=True).drop_duplicates()
-    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'accept_muon', 0.2, opposite=True)], ignore_index=True).drop_duplicates()
+    # dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'accept_muon', 0.2, opposite=True)], ignore_index=True).drop_duplicates()
 
     # Transverse momenta selections (based on CERN paper)
-    dF_acc = apply_selection_threshold(dF_acc, 'mu_plus_PT', 800)
-    dF_acc = apply_selection_threshold(dF_acc, 'mu_minus_PT', 800)
-    dF_acc = apply_selection_threshold(dF_acc, 'K_PT', 250)
-    dF_acc = apply_selection_threshold(dF_acc, 'Pi_PT', 250)
-    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'mu_plus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
-    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'mu_minus_PT', 800, opposite=True)], ignore_index=True).drop_duplicates()
-    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'K_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
-    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
+    dF_acc = apply_selection_threshold(dF_acc, 'mu_plus_PT', 3330)
+    dF_acc = apply_selection_threshold(dF_acc, 'mu_minus_PT', 1000)
+    dF_acc = apply_selection_threshold(dF_acc, 'K_PT', 1000)
+    # dF_acc = apply_selection_threshold(dF_acc, 'Pi_PT', 250)
+    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'mu_plus_PT', 3330, opposite=True)], ignore_index=True).drop_duplicates()
+    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'mu_minus_PT', 1000, opposite=True)], ignore_index=True).drop_duplicates()
+    dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'K_PT', 1000, opposite=True)], ignore_index=True).drop_duplicates()
+    # dF_acc_filtered_out = pd.concat([dF_acc_filtered_out, apply_selection_threshold(dF_acc_unfiltered, 'Pi_PT', 250, opposite=True)], ignore_index=True).drop_duplicates()
     #print(len(dF_acc),len(dF_acc_unfiltered),len(dF_acc_filtered_out))
+    
+    # Chi squared
+    for chi2_param in ['mu_plus_IPCHI2_OWNPV', 'mu_minus_IPCHI2_OWNPV', 'K_IPCHI2_OWNPV', 'Pi_IPCHI2_OWNPV']:
+        dF_acc = apply_selection_threshold(dF_acc, chi2_param, 16)
+        dF_acc_filtered_out = pd.concat([dF_acc_filtered_out,
+                                          apply_selection_threshold(dF_acc_unfiltered, chi2_param, 16,
+                                                                         opposite=True)],
+                                         ignore_index=True).drop_duplicates()
+    
+        dF_acc = apply_selection_threshold(dF_acc, 'B0_IPCHI2_OWNPV', 8.07, opposite=True)
+        dF_acc_filtered_out = pd.concat([dF_acc_filtered_out,
+                                          apply_selection_threshold(dF_acc_unfiltered, 'B0_IPCHI2_OWNPV', 8.07,
+                                                                         opposite=False)],
+                                         ignore_index=True).drop_duplicates()
+    
+    # Peaking Background
+    #phimumu 
+    pmm_bg = "/phimumu.csv"
+    pmm_bg_path = folder_path + pmm_bg
+    phimumu_data = pd.read_csv(pmm_bg_path)
+    
+    Phi_M = peaking_functions.phimumu(dF_acc)
+    Phi_M_bg = peaking_functions.phimumu(phimumu_data)
+    mu, sigma = sp.stats.norm.fit(Phi_M_bg)
+    # mask = (Phi_M >= mu+sigma)
+    dF_acc['Phi_M'] = Phi_M
+    dF_acc = apply_selection_threshold(dF_acc, 'Phi_M', mu+sigma)
+    dF_acc_filtered_out = apply_selection_threshold(dF_acc_filtered_out, 'Phi_M', mu+sigma, opposite=True)
+    # dF_acc = dF_acc[mask]
+    # dF_acc_filtered_out = dF_acc_filtered_out[~mask]
+    
+    
+    #pKmumu_piTop
+    lambda1 = "\pKmumu_piTop.csv"
+    lambda1_path = folder_path + lambda1
+    lambda1_data = pd.read_csv(lambda1_path)
+    lambda1_M = peaking_functions.pKmumu_piTop(dF_acc)
+    
+    lambda1_M = peaking_functions.pKmumu_piTop(dF_acc)
+    lambda1_M_bg = peaking_functions.pKmumu_piTop(lambda1_data)
+    mu, sigma = sp.stats.norm.fit(lambda1_M_bg)
+    low = mu - sigma
+    high = mu + sigma
+    
+    mask = (lambda1_M < low ) | (lambda1_M > high )
+    dF_acc=dF_acc[mask]
+    dF_acc_filtered_out = dF_acc_filtered_out[~mask]
+  
+    
+    #pKmumu_piTok_kTop
+    
+    lambda2 = "\pKmumu_piTok_kTop.csv"
+    lambda2_path = folder_path + lambda2
+    lambda2_data = pd.read_csv(lambda2_path)
+    lambda2_M = peaking_functions.pKmumu_piTok_kTop(dF_acc)
+    
+    lambda2_M = peaking_functions.pKmumu_piTok_kTop(dF_acc)
+    lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
+    mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
+    low = mu - sigma
+    high = mu + sigma
+    
+    mask = (lambda2_M < low ) | (lambda2_M > high )
+    dF_acc=dF_acc[mask]
+    dF_acc_filtered_out = dF_acc_filtered_out[~mask]
+    
+    # From sensitivity analysis
+    
+    params = ['B0_MM', 'J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
+    cuts = [5250, 1725, 2.4, 20000, 0.52]
+    length = len(cuts)
+    for i in range(length):
+        dF_acc = apply_selection_threshold(dF_acc, params[i], cuts[i])
+        dF_acc_filtered_out = pd.concat([dF_acc_filtered_out,
+                                          apply_selection_threshold(dF_acc_filtered_out, params[i], cuts[i],
+                                                                         opposite=True)],
+                                         ignore_index=True).drop_duplicates()
     print('Acceptance selection criteria done')
 
     acceptance_unsel = dF_acc_unfiltered
