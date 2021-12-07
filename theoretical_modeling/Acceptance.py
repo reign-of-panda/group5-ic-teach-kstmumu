@@ -12,7 +12,9 @@ from scipy.special import legendre
 from numpy.polynomial import legendre as L
 from iminuit import Minuit
 
-def acceptance(folder_path, file_name):
+def acceptance():
+    folder_path = "/Users/raymondvanes/Downloads/splitcsv_acceptance"
+    file_name = "/acceptance_mc-3.csv"
     file_path = folder_path + file_name
     dF_acc = pd.read_csv(file_path)
     print('Reading acceptance file done')
@@ -55,6 +57,7 @@ def acceptance(folder_path, file_name):
     acceptance_sel = dF_acc
 
     # Histogram bins
+    # unselected u, selected s, costhetak k, ...
     bin_heights_acc_uk, bin_borders_acc_uk = np.histogram(acceptance_unsel['costhetak'], bins='auto')
     bin_centers_acc_uk = bin_borders_acc_uk[:-1] + np.diff(bin_borders_acc_uk) / 2
     bin_heights_acc_sk, bin_borders_acc_sk = np.histogram(acceptance_sel['costhetak'], bins='auto')
@@ -63,8 +66,12 @@ def acceptance(folder_path, file_name):
     bin_centers_acc_ul = bin_borders_acc_ul[:-1] + np.diff(bin_borders_acc_ul) / 2
     bin_heights_acc_sl, bin_borders_acc_sl = np.histogram(acceptance_sel['costhetal'], bins='auto')
     bin_centers_acc_sl = bin_borders_acc_sl[:-1] + np.diff(bin_borders_acc_sl) / 2
+    bin_heights_acc_up, bin_borders_acc_up = np.histogram(acceptance_unsel['phi'], bins='auto')
+    bin_centers_acc_up = (bin_borders_acc_up[:-1] + np.diff(bin_borders_acc_up) / 2) / np.pi
+    bin_heights_acc_sp, bin_borders_acc_sp = np.histogram(acceptance_sel['phi'], bins='auto')
+    bin_centers_acc_sp = (bin_borders_acc_sp[:-1] + np.diff(bin_borders_acc_sp) / 2) / np.pi
 
-    max_degree = 5
+    max_degree = 4
     x_interval_for_leg = np.linspace(-1.0, 1.0, 100)
 
     print('Started fitting histograms')
@@ -72,11 +79,15 @@ def acceptance(folder_path, file_name):
     y_uk = L.legval(x_interval_for_leg, p_uk)
     p_ul = L.legfit(bin_centers_acc_ul, bin_heights_acc_ul, max_degree)
     y_ul = L.legval(x_interval_for_leg, p_ul)
+    p_up = L.legfit(bin_centers_acc_up, bin_heights_acc_up, max_degree)
+    y_up = L.legval(x_interval_for_leg, p_up)
 
     p_sk = L.legfit(bin_centers_acc_sk, bin_heights_acc_sk, max_degree)
     y_sk = L.legval(x_interval_for_leg, p_sk)
     p_sl = L.legfit(bin_centers_acc_sl, bin_heights_acc_sl, max_degree)
     y_sl = L.legval(x_interval_for_leg, p_sl)
+    p_sp = L.legfit(bin_centers_acc_sp, bin_heights_acc_sp, max_degree)
+    y_sp = L.legval(x_interval_for_leg, p_sp)
 
 
     # We want to multiply the selected data with the ratio of unselected/selected
@@ -85,16 +96,21 @@ def acceptance(folder_path, file_name):
     #must be of the form: unselected/selected
     redist_k = L.legval(x_interval_for_leg,L.legfit(x_interval_for_leg, y_uk/y_sk, max_degree))
     redist_l = L.legval(x_interval_for_leg,L.legfit(x_interval_for_leg, y_ul/y_sl, max_degree))
+    redist_p = L.legval(x_interval_for_leg,L.legfit(x_interval_for_leg, y_up/y_sp, max_degree))
 
     normalisation_k = sp.integrate.simps(y_sk, x_interval_for_leg)/sp.integrate.simps(y_sk*redist_k, x_interval_for_leg)
     normalisation_l = sp.integrate.simps(y_sl, x_interval_for_leg)/sp.integrate.simps(y_sl*redist_l, x_interval_for_leg)
+    normalisation_p = sp.integrate.simps(y_sp, x_interval_for_leg)/sp.integrate.simps(y_sp*redist_p, x_interval_for_leg)
 
     acceptance_k = redist_k*normalisation_k
     acceptance_l = redist_l*normalisation_l
+    acceptance_p = redist_p*normalisation_p
 
     print(normalisation_k)
     print(normalisation_l)
+    print(normalisation_p)
 
+    """
     plt.hist(acceptance_unsel['costhetak'], bins='auto', label='unselected', zorder=1)
     plt.hist(acceptance_sel['costhetak'], bins='auto', label='selected', zorder=2)
     plt.plot(x_interval_for_leg, y_uk, zorder=3)
@@ -113,4 +129,14 @@ def acceptance(folder_path, file_name):
     plt.title('Acceptance data set: cos(theta_l)')
     plt.show()
 
-    return acceptance_k, acceptance_l, x_interval_for_leg
+    plt.hist(acceptance_unsel['phi'], bins='auto', label='unselected')
+    plt.hist(acceptance_sel['phi'], bins='auto', label='selected')
+    plt.plot(x_interval_for_leg, y_up, zorder=3)
+    plt.plot(x_interval_for_leg, y_sp, zorder=4)
+    plt.plot(x_interval_for_leg, y_sp*acceptance_p, zorder=5)
+    plt.legend()
+    plt.title('Acceptance data set: cos(theta_l)')
+    plt.show()
+    """
+
+    return redist_k, redist_l, redist_p, x_interval_for_leg
