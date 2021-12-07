@@ -8,10 +8,13 @@ import matplotlib.pyplot as plt
 from iminuit import Minuit
 from scipy.optimize import curve_fit
 from scipy.integrate import quad
+from scipy.stats import norm 
 from numpy.polynomial import legendre as L
 import Acceptance
 import Background
 import Predictions
+
+import peaking_functions
 
 
 class LHCb:
@@ -20,10 +23,13 @@ class LHCb:
         Loads in data
         """
         # Change this path to whatever it is on your personal computer
-        folder_path = "/Users/raymondvanes/Downloads"
+        self.folder_path = r"C:\Users\zoyaa\OneDrive\Documents\Year 3\Team Based Project\csv"
         file_name = "/total_dataset.csv"
-        file_path = folder_path + file_name
+        file_path = self.folder_path + file_name
         self.dF = pd.read_csv(file_path)
+        self.acceptance_file = "/acceptance_mc.csv"
+        
+        
         print('Reading total dataset done')
 
         self.dF_unfiltered = self.dF
@@ -46,6 +52,45 @@ class LHCb:
         else:
             dataF = dataF[mask]
         return dataF
+    
+    
+    
+    def peaking(self): 
+        """
+        Taking away peaking backgrounds via reconstruction (includes phimumu, 
+                                                            and the 2 lambda).
+        """
+        #phimumu 
+        pmm_bg = "/phimumu.csv"
+        pmm_bg_path = self.folder_path + pmm_bg
+        phimumu_data = pd.read_csv(pmm_bg_path)
+        
+        Phi_M = peaking_functions.phimumu(self.dF)
+        Phi_M_bg = peaking_functions.phimumu(phimumu_data)
+        mu, sigma = sp.stats.norm.fit(Phi_M_bg)
+        mask = (Phi_M >= mu+sigma)
+        self.dF = self.dF[mask]
+        
+        #pKmumu_piTok_kTop
+        
+#        lambda2 = "\pKmumu_piTok_kTop"
+#        lambda2_path = self.folder_path + lambda2
+#        lambda2_data = pd.read_csv(lambda2_path)
+#        lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
+#        
+#        lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
+#        lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
+#        mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
+#        low = mu - sigma
+#        high = mu + sigma
+#        
+#        mask = (lambda2_M < low ) | (lambda2_M > high )
+#        self.dF=self.dF[mask]
+
+
+
+
+
 
     def probability_assignment(self):
         """
@@ -212,8 +257,8 @@ class LHCb:
 
     def totaldata_backgr_acc(self):
         self.legobj_backgr_k, self.legobj_backgr_l, self.legobj_backgr_p = Background.background(self.dF, total=True)
-
-        self.acceptance_k, self.acceptance_l, self.acceptance_p, self.x_interval_for_leg = Acceptance.acceptance()
+        
+        self.acceptance_k, self.acceptance_l, self.acceptance_p, self.x_interval_for_leg = Acceptance.acceptance(self.folder_path,self.acceptance_file)
         self.legendre_k = L.legfit(self.x_interval_for_leg, self.acceptance_k, self.max_degree)
         self.legendre_l = L.legfit(self.x_interval_for_leg, self.acceptance_l, self.max_degree)
         self.legendre_p = L.legfit(self.x_interval_for_leg, self.acceptance_p, self.max_degree)
@@ -408,7 +453,9 @@ class LHCb:
         elif order == 1:
             self.trasv_mom_filter(1 - order)
             self.probability_filter(order)
+            
         self.chi_sq_filter()
+        self.peaking()
 
 
         # Intermediary plot - comment out if not needed
