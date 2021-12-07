@@ -12,9 +12,7 @@ from scipy.special import legendre
 from numpy.polynomial import legendre as L
 from iminuit import Minuit
 
-def acceptance():
-    folder_path = "/Users/raymondvanes/Downloads/splitcsv_acceptance"
-    file_name = "/acceptance_mc-3.csv"
+def acceptance(folder_path, file_name):
     file_path = folder_path + file_name
     dF_acc = pd.read_csv(file_path)
     print('Reading acceptance file done')
