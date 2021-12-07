@@ -23,7 +23,7 @@ class LHCb:
         Loads in data
         """
         # Change this path to whatever it is on your personal computer
-        self.folder_path = r"C:\Users\zoyaa\OneDrive\Documents\Year 3\Team Based Project\csv"
+        self.folder_path = "D:\OneDrive - Imperial College London\Imperial College London\Module Content\Year 3\Problem Solving\year3-problem-solving\year3-problem-solving\csv"
         file_name = "/total_dataset.csv"
         file_path = self.folder_path + file_name
         self.dF = pd.read_csv(file_path)
@@ -258,7 +258,7 @@ class LHCb:
     def totaldata_backgr_acc(self):
         self.legobj_backgr_k, self.legobj_backgr_l, self.legobj_backgr_p = Background.background(self.dF, total=True)
         
-        self.acceptance_k, self.acceptance_l, self.acceptance_p, self.x_interval_for_leg = Acceptance.acceptance(self.folder_path,self.acceptance_file)
+        self.acceptance_k, self.acceptance_l, self.x_interval_for_leg = Acceptance.acceptance(self.folder_path,self.acceptance_file)
         self.legendre_k = L.legfit(self.x_interval_for_leg, self.acceptance_k, self.max_degree)
         self.legendre_l = L.legfit(self.x_interval_for_leg, self.acceptance_l, self.max_degree)
         self.legendre_p = L.legfit(self.x_interval_for_leg, self.acceptance_p, self.max_degree)
