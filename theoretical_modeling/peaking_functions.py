@@ -106,3 +106,34 @@ def pKmumu_piTok_kTop(DF):
     lambda_m = Mass(lambda_E, lambda_P)
 
     return lambda_m
+
+
+"pKmumu_piTop"
+
+def pKmumu_piTop(DF):
+    K_PE = DF["K_PE"]
+    mu_plus_PE = DF["mu_plus_PE"]
+    mu_minus_PE = DF["mu_minus_PE"]
+        
+    p_new_E = reconstruct('Pi', 'p', known_M['p'], DF) 
+    
+    # proton calculations
+    p_PX = DF['Pi_PX']
+    p_PY = DF['Pi_PY']
+    p_PZ = DF['Pi_PZ']
+    p_P = np.sqrt(p_PX**2 + p_PY**2 + p_PY**2)
+    
+    p_M = Mass(p_new_E, p_P)
+    
+    # bottom lambda calculations
+    lambda_E = p_new_E + K_PE + mu_minus_PE + mu_plus_PE
+    lambda_PX = p_PX + DF['K_PX'] + DF['mu_minus_PX'] + DF['mu_plus_PX']
+    lambda_PY = p_PY + DF['K_PY'] + DF['mu_minus_PY'] + DF['mu_plus_PY']
+    lambda_PZ = p_PZ + DF['K_PZ'] + DF['mu_minus_PZ'] + DF['mu_plus_PZ']
+    lambda_P = np.sqrt(lambda_PX**2 + lambda_PY**2 + lambda_PZ**2)
+
+    lambda_m = Mass(lambda_E, lambda_P)
+
+    return lambda_m
+
+    
