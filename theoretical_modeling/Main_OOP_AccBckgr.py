@@ -12,7 +12,7 @@ from scipy.stats import norm
 from numpy.polynomial import legendre as L
 import Acceptance
 import Background
-import Predictions
+# import Predictions
 
 import peaking_functions
 
@@ -53,11 +53,11 @@ class LHCb:
             dataF = dataF[mask]
         return dataF
     
-    def apply_selection_threshold_for_lambda(self, dataF, column, threshold, opposite=False):
+    def apply_selection_threshold_for_lambda(self, dataF, column, low, high, opposite=False):
         """
         Generic function for applying a selection criteria
         """
-        mask = (dataF[column] >= threshold)
+        mask = (dataF[column] < low ) | (dataF[column] > high )
         if opposite == True:
             dataF = dataF[~mask]
         else:
@@ -76,17 +76,19 @@ class LHCb:
             phimumu_data = pd.read_csv(pmm_bg_path)
             
             Phi_M = peaking_functions.phimumu(self.dF)
+            Phi_M_out = peaking_functions.phimumu(self.dF_filtered_out)
             Phi_M_bg = peaking_functions.phimumu(phimumu_data)
             mu, sigma = sp.stats.norm.fit(Phi_M_bg)
             # mask = (Phi_M >= mu+sigma)
             # mask2 = (Phi_M >= mu+sigma)
             self.dF['Phi_M'] = Phi_M
             self.dF = self.apply_selection_threshold(self.dF, 'Phi_M', mu+sigma)
-            self.dF_filtered_out = self.apply_selection_threshold(self.dF_filtered_out, 'Phi_M', mu+sigma, opposite=True)
+            self.dF_filtered_out['Phi_M'] = Phi_M_out
+            self.dF_filtered_out = self.apply_selection_threshold(self.dF_filtered_out, 'Phi_M', mu+sigma, opposite = True)
             
             
-            self.dF = self.dF[mask]
-            self.dF_filtered_out = self.dF_filtered_out[~mask]
+            # self.dF = self.dF[mask]
+            # self.dF_filtered_out = self.dF_filtered_out[~mask]
             
             
             #pKmumu_piTop
@@ -94,16 +96,19 @@ class LHCb:
             lambda1_path = self.folder_path + lambda1
             lambda1_data = pd.read_csv(lambda1_path)
             lambda1_M = peaking_functions.pKmumu_piTop(self.dF)
+            lambda1_M_out = peaking_functions.pKmumu_piTop(self.dF_filtered_out)
             
-            lambda1_M = peaking_functions.pKmumu_piTop(self.dF)
+            # lambda1_M = peaking_functions.pKmumu_piTop(self.dF)
             lambda1_M_bg = peaking_functions.pKmumu_piTop(lambda1_data)
             mu, sigma = sp.stats.norm.fit(lambda1_M_bg)
             low = mu - sigma
             high = mu + sigma
             
-            mask = (lambda1_M < low ) | (lambda1_M > high )
-            self.dF=self.dF[mask]
-            self.dF_filtered_out = self.dF_filtered_out[~mask]
+            self.dF['lambda1_M'] = lambda1_M    
+            self.dF_filtered_out['lambda1_M'] = lambda1_M_out 
+            # mask = (lambda1_M < low ) | (lambda1_M > high )
+            self.dF = self.apply_selection_threshold_for_lambda(self.dF, 'lambda1_M', low, high)
+            self.dF_filtered_out = self.apply_selection_threshold_for_lambda(self.dF_filtered_out, 'lambda1_M', low, high, opposite = True)
       
             
             #pKmumu_piTok_kTop
@@ -112,16 +117,19 @@ class LHCb:
             lambda2_path = self.folder_path + lambda2
             lambda2_data = pd.read_csv(lambda2_path)
             lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
+            lambda2_M_out = peaking_functions.pKmumu_piTok_kTop(self.dF_filtered_out)
             
-            lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
+            # lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
             lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
             mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
             low = mu - sigma
             high = mu + sigma
             
-            mask = (lambda2_M < low ) | (lambda2_M > high )
-            self.dF=self.dF[mask]
-            self.dF_filtered_out = self.dF_filtered_out[~mask]
+            self.dF['lambda2_M'] = lambda2_M 
+            self.dF_filtered_out['lambda2_M'] = lambda2_M_out
+            # mask = (lambda2_M < low ) | (lambda2_M > high )
+            self.dF = self.apply_selection_threshold_for_lambda(self.dF, 'lambda2_M', low, high)
+            self.dF_filtered_out = self.apply_selection_threshold_for_lambda(self.dF_filtered_out, 'lambda2_M', low, high, opposite = True)
 
 
     def probability_assignment(self):
@@ -234,8 +242,8 @@ class LHCb:
                                          ignore_index=True).drop_duplicates()
         
     def from_sensitivity_analysis(self):
-        params = ['B0_MM', 'J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
-        cuts = [5250, 1725, 2.4, 20000, 0.52]
+        params = ['J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
+        cuts = [1725, 2.4, 20000, 0.52]
         length = len(cuts)
         
         for i in range(length):
@@ -489,8 +497,8 @@ class LHCb:
         self.dF.to_csv(saving_directory + "/Filtered_data.csv") 
         self.dF_filtered_out.to_csv(saving_directory + "/Filtered_out_data.csv")
         
-        df_pred = Predictions.predictions()
-        df_pred.to_csv(saving_directory + "/Predictions.csv")
+        # df_pred = Predictions.predictions()
+        # df_pred.to_csv(saving_directory + "/Predictions.csv")
         
         # Observables
         fl_val = np.array([self.fls_p, self.fls_l, self.fls_k, self.fl_errs_p, self.fl_errs_l, self.fl_errs_k])
@@ -526,7 +534,7 @@ class LHCb:
             
         self.chi_sq_filter()
         self.peaking()
-        self.from_sensitivity_analysis()
+        # self.from_sensitivity_analysis()
 
 
         # Intermediary plot - comment out if not needed
@@ -536,7 +544,7 @@ class LHCb:
         # Separate q bins and Standard Model values
         self.q_separate()
         self.backgr_acceptance_fit_observables()
-        self.plot_observable()
+        # self.plot_observable()
         
         self.save_plotting_data()
 

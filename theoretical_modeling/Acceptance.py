@@ -28,6 +28,17 @@ def acceptance(folder_path, file_name):
         else:
             dataF = dataF[mask]
         return dataF
+    
+    def apply_selection_threshold_for_lambda(dataF, column, low, high, opposite=False):
+        """
+        Generic function for applying a selection criteria
+        """
+        mask = (dataF[column] < low ) | (dataF[column] > high )
+        if opposite == True:
+            dataF = dataF[~mask]
+        else:
+            dataF = dataF[mask]
+        return dataF
 
     dF_acc['accept_kaon'] = dF_acc["K_MC15TuneV1_ProbNNk"] * (1 - dF_acc["K_MC15TuneV1_ProbNNp"])
     dF_acc['accept_pion'] = dF_acc["Pi_MC15TuneV1_ProbNNpi"] * (1 - dF_acc["Pi_MC15TuneV1_ProbNNk"]) * (1 - dF_acc["Pi_MC15TuneV1_ProbNNp"])
@@ -75,10 +86,12 @@ def acceptance(folder_path, file_name):
     phimumu_data = pd.read_csv(pmm_bg_path)
     
     Phi_M = peaking_functions.phimumu(dF_acc)
+    Phi_M_out = peaking_functions.phimumu(dF_acc_filtered_out)
     Phi_M_bg = peaking_functions.phimumu(phimumu_data)
     mu, sigma = sp.stats.norm.fit(Phi_M_bg)
     # mask = (Phi_M >= mu+sigma)
     dF_acc['Phi_M'] = Phi_M
+    dF_acc_filtered_out['Phi_M'] = Phi_M_out
     dF_acc = apply_selection_threshold(dF_acc, 'Phi_M', mu+sigma)
     dF_acc_filtered_out = apply_selection_threshold(dF_acc_filtered_out, 'Phi_M', mu+sigma, opposite=True)
     # dF_acc = dF_acc[mask]
@@ -90,16 +103,19 @@ def acceptance(folder_path, file_name):
     lambda1_path = folder_path + lambda1
     lambda1_data = pd.read_csv(lambda1_path)
     lambda1_M = peaking_functions.pKmumu_piTop(dF_acc)
+    lambda1_M_out = peaking_functions.pKmumu_piTop(dF_acc_filtered_out)
     
-    lambda1_M = peaking_functions.pKmumu_piTop(dF_acc)
+    # lambda1_M = peaking_functions.pKmumu_piTop(dF_acc)
     lambda1_M_bg = peaking_functions.pKmumu_piTop(lambda1_data)
     mu, sigma = sp.stats.norm.fit(lambda1_M_bg)
     low = mu - sigma
     high = mu + sigma
     
-    mask = (lambda1_M < low ) | (lambda1_M > high )
-    dF_acc=dF_acc[mask]
-    dF_acc_filtered_out = dF_acc_filtered_out[~mask]
+    dF_acc['lambda1_M'] = lambda1_M
+    dF_acc_filtered_out['lambda1_M'] = lambda1_M_out
+    # mask = (lambda1_M < low ) | (lambda1_M > high)
+    dF_acc = apply_selection_threshold_for_lambda(dF_acc, 'lambda1_M', low, high)
+    dF_acc_filtered_out = apply_selection_threshold_for_lambda(dF_acc_filtered_out, 'lambda1_M', low, high, opposite = True)
   
     
     #pKmumu_piTok_kTop
@@ -108,28 +124,31 @@ def acceptance(folder_path, file_name):
     lambda2_path = folder_path + lambda2
     lambda2_data = pd.read_csv(lambda2_path)
     lambda2_M = peaking_functions.pKmumu_piTok_kTop(dF_acc)
+    lambda2_M_out = peaking_functions.pKmumu_piTok_kTop(dF_acc_filtered_out)
     
-    lambda2_M = peaking_functions.pKmumu_piTok_kTop(dF_acc)
+    # lambda2_M = peaking_functions.pKmumu_piTok_kTop(dF_acc)
     lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
     mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
     low = mu - sigma
     high = mu + sigma
     
-    mask = (lambda2_M < low ) | (lambda2_M > high )
-    dF_acc=dF_acc[mask]
-    dF_acc_filtered_out = dF_acc_filtered_out[~mask]
+    dF_acc['lambda2_M'] = lambda2_M
+    dF_acc_filtered_out['lambda2_M'] = lambda2_M_out
+    # mask = (lambda2_M < low ) | (lambda2_M > high )
+    dF_acc = apply_selection_threshold_for_lambda(dF_acc, 'lambda2_M', low, high)
+    dF_acc_filtered_out = apply_selection_threshold_for_lambda(dF_acc_filtered_out, 'lambda2_M', low, high, opposite = True)
     
     # From sensitivity analysis
     
-    params = ['B0_MM', 'J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
-    cuts = [5250, 1725, 2.4, 20000, 0.52]
-    length = len(cuts)
-    for i in range(length):
-        dF_acc = apply_selection_threshold(dF_acc, params[i], cuts[i])
-        dF_acc_filtered_out = pd.concat([dF_acc_filtered_out,
-                                          apply_selection_threshold(dF_acc_filtered_out, params[i], cuts[i],
-                                                                         opposite=True)],
-                                         ignore_index=True).drop_duplicates()
+    # params = ['J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
+    # cuts = [1725, 2.4, 20000, 0.52]
+    # length = len(cuts)
+    # for i in range(length):
+    #     dF_acc = apply_selection_threshold(dF_acc, params[i], cuts[i])
+    #     dF_acc_filtered_out = pd.concat([dF_acc_filtered_out,
+    #                                       apply_selection_threshold(dF_acc_filtered_out, params[i], cuts[i],
+    #                                                                      opposite=True)],
+    #                                      ignore_index=True).drop_duplicates()
     print('Acceptance selection criteria done')
 
     acceptance_unsel = dF_acc_unfiltered
