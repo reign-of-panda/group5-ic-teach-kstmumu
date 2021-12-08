@@ -12,7 +12,7 @@ from scipy.stats import norm
 from numpy.polynomial import legendre as L
 import Acceptance
 import Background
-# import Predictions
+import Predictions
 
 import peaking_functions
 
@@ -544,7 +544,7 @@ class LHCb:
         # Separate q bins and Standard Model values
         self.q_separate()
         self.backgr_acceptance_fit_observables()
-        # self.plot_observable()
+        self.plot_observable()
         
         self.save_plotting_data()
 
