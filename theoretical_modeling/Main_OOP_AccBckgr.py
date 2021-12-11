@@ -82,7 +82,7 @@ class LHCb:
             # mask = (Phi_M >= mu+sigma)
             # mask2 = (Phi_M >= mu+sigma)
             self.dF['Phi_M'] = Phi_M
-            self.dF = self.apply_selection_threshold(self.dF, 'Phi_M', mu+sigma)
+            self.dF = self.apply_selection_threshold(self.dF, 'Phi_M', mu+0.5*sigma)
             self.dF_filtered_out['Phi_M'] = Phi_M_out
             self.dF_filtered_out = self.apply_selection_threshold(self.dF_filtered_out, 'Phi_M', mu+sigma, opposite = True)
             
@@ -101,8 +101,8 @@ class LHCb:
             # lambda1_M = peaking_functions.pKmumu_piTop(self.dF)
             lambda1_M_bg = peaking_functions.pKmumu_piTop(lambda1_data)
             mu, sigma = sp.stats.norm.fit(lambda1_M_bg)
-            low = mu - sigma
-            high = mu + sigma
+            low = mu - 0.4*sigma
+            high = mu + 0.6*sigma
             
             self.dF['lambda1_M'] = lambda1_M    
             self.dF_filtered_out['lambda1_M'] = lambda1_M_out 
@@ -122,8 +122,8 @@ class LHCb:
             # lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
             lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
             mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
-            low = mu - sigma
-            high = mu + sigma
+            low = mu - 0.5*sigma
+            high = mu + 0.8*sigma
             
             self.dF['lambda2_M'] = lambda2_M 
             self.dF_filtered_out['lambda2_M'] = lambda2_M_out
@@ -348,7 +348,7 @@ class LHCb:
                 acceptance = L.legval(ctk, self.acceptance_k)
                 background = L.legval(ctk, self.legobj_backgr_k)
                 normalised_background = noi_ratio * (background/sp.integrate.simps(ctk, background))
-                function = acceptance * ((3 / 2) * fl * ctk ** 2 + (3 / 4) * (1 - fl) * (1 - ctk ** 2) - normalised_background)
+                function = acceptance * ((3 / 2) * fl * ctk ** 2 + (3 / 4) * (1 - fl) * (1 - ctk ** 2) + normalised_background)
                 normalised_scalar_array = function/sp.integrate.simps(function, ctk)
                 return - np.sum(np.log(normalised_scalar_array))
 
@@ -357,7 +357,7 @@ class LHCb:
                 acceptance = L.legval(ctl, self.acceptance_l)
                 background = L.legval(ctl, self.legobj_backgr_l)
                 normalised_background = noi_ratio * (background/sp.integrate.simps(ctl, background))
-                function = acceptance * ((3 / 4) * fl * (1 - ctl ** 2) + (3 / 8) * (1 - fl) * (1 + ctl ** 2) + afb * ctl - normalised_background)
+                function = acceptance * ((3 / 4) * fl * (1 - ctl ** 2) + (3 / 8) * (1 - fl) * (1 + ctl ** 2) + afb * ctl + normalised_background)
                 normalised_scalar_array = function/sp.integrate.simps(function, ctl)
                 return - np.sum(np.log(normalised_scalar_array))
 
@@ -366,7 +366,7 @@ class LHCb:
                 acceptance = L.legval(phi, self.acceptance_p)
                 background = L.legval(phi, self.legobj_backgr_p)
                 normalised_background = noi_ratio * (background/sp.integrate.simps(phi, background))
-                function = acceptance * ((1/(2 * np.pi)) * (1+(1/2)*(1 - fl) * at * np.cos(2 * phi) + aim * np.sin(2 * phi)) - normalised_background)
+                function = acceptance * ((1/(2 * np.pi)) * (1+(1/2)*(1 - fl) * at * np.cos(2 * phi) + aim * np.sin(2 * phi)) + normalised_background)
                 normalised_scalar_array = function/sp.integrate.simps(function, phi)
                 return - np.sum(np.log(normalised_scalar_array))
 

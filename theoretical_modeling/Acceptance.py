@@ -92,8 +92,8 @@ def acceptance(folder_path, file_name):
     # mask = (Phi_M >= mu+sigma)
     dF_acc['Phi_M'] = Phi_M
     dF_acc_filtered_out['Phi_M'] = Phi_M_out
-    dF_acc = apply_selection_threshold(dF_acc, 'Phi_M', mu+sigma)
-    dF_acc_filtered_out = apply_selection_threshold(dF_acc_filtered_out, 'Phi_M', mu+sigma, opposite=True)
+    dF_acc = apply_selection_threshold(dF_acc, 'Phi_M', mu+0.5*sigma)
+    dF_acc_filtered_out = apply_selection_threshold(dF_acc_filtered_out, 'Phi_M', mu+0.5*sigma, opposite=True)
     # dF_acc = dF_acc[mask]
     # dF_acc_filtered_out = dF_acc_filtered_out[~mask]
     
@@ -108,8 +108,8 @@ def acceptance(folder_path, file_name):
     # lambda1_M = peaking_functions.pKmumu_piTop(dF_acc)
     lambda1_M_bg = peaking_functions.pKmumu_piTop(lambda1_data)
     mu, sigma = sp.stats.norm.fit(lambda1_M_bg)
-    low = mu - sigma
-    high = mu + sigma
+    low = mu - 0.4*sigma
+    high = mu + 0.6*sigma
     
     dF_acc['lambda1_M'] = lambda1_M
     dF_acc_filtered_out['lambda1_M'] = lambda1_M_out
@@ -129,8 +129,8 @@ def acceptance(folder_path, file_name):
     # lambda2_M = peaking_functions.pKmumu_piTok_kTop(dF_acc)
     lambda2_M_bg = peaking_functions.pKmumu_piTok_kTop(lambda2_data)
     mu, sigma = sp.stats.norm.fit(lambda2_M_bg)
-    low = mu - sigma
-    high = mu + sigma
+    low = mu - 0.5*sigma
+    high = mu + 0.8*sigma
     
     dF_acc['lambda2_M'] = lambda2_M
     dF_acc_filtered_out['lambda2_M'] = lambda2_M_out
