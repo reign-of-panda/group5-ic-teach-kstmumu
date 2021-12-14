@@ -78,6 +78,21 @@ def acceptance(folder_path, file_name):
                                           apply_selection_threshold(dF_acc_unfiltered, 'B0_IPCHI2_OWNPV', 8.07,
                                                                          opposite=False)],
                                          ignore_index=True).drop_duplicates()
+                                          
+                                           # From sensitivity analysis
+    
+    # params = ['J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
+    # cuts = [1725, 2.4, 20000, 0.52]
+    # length = len(cuts)
+    # for i in range(length):
+    #     dF_acc = apply_selection_threshold(dF_acc, params[i], cuts[i])
+    #     dF_acc_filtered_out = pd.concat([dF_acc_filtered_out,
+    #                                       apply_selection_threshold(dF_acc_filtered_out, params[i], cuts[i],
+    #                                                                      opposite=True)],
+    #                                      ignore_index=True).drop_duplicates()
+    
+    
+    
     
     # Peaking Background
     #phimumu 
@@ -138,17 +153,59 @@ def acceptance(folder_path, file_name):
     dF_acc = apply_selection_threshold_for_lambda(dF_acc, 'lambda2_M', low, high)
     dF_acc_filtered_out = apply_selection_threshold_for_lambda(dF_acc_filtered_out, 'lambda2_M', low, high, opposite = True)
     
-    # From sensitivity analysis
+
+
+
+
+    #Jpsi Kaon to muon 
+    jpsi1 = folder_path + "\jpsi_mu_k_swap.csv"
+    jpsi1_path = folder_path + jpsi1
+    jpsi1_data = pd.read_csv(jpsi1_path)
     
-    # params = ['J_psi_MM', 'K_ETA', 'K_P', 'J_psi_ENDVERTEX_CHI2']
-    # cuts = [1725, 2.4, 20000, 0.52]
-    # length = len(cuts)
-    # for i in range(length):
-    #     dF_acc = apply_selection_threshold(dF_acc, params[i], cuts[i])
-    #     dF_acc_filtered_out = pd.concat([dF_acc_filtered_out,
-    #                                       apply_selection_threshold(dF_acc_filtered_out, params[i], cuts[i],
-    #                                                                      opposite=True)],
-    #                                      ignore_index=True).drop_duplicates()
+    
+    jpsi1_MM  = peaking_functions.jpsiKM2(dF_acc)
+    jpsi1_M_out = peaking_functions.jpsiKM2(dF_acc_filtered_out)
+    
+    
+    jpsi1_BR = peaking_functions.jpsiKM2(jpsi1_data)
+    mu,sigma = sp.stats.norm.fit(jpsi1_BR)
+    low = mu-2*sigma
+    high=mu+2*sigma
+    
+    dF_acc['jpsi1_MM'] = jpsi1_MM
+    dF_acc_filtered_out['jpsi1_MM'] = jpsi1_M_out
+    
+    #same applying threshold as for lambda that's why I've used the same function. 
+    dF_acc = apply_selection_threshold_for_lambda(dF_acc, 'jpsi1_MM', low, high)
+    dF_acc_filtered_out = apply_selection_threshold_for_lambda(dF_acc_filtered_out, 'jpsi1_MM', low, high, opposite = True)
+    
+    
+    
+    
+    #Jpsi Pion to muon 
+    jpsi2 = folder_path + "\jpsi_mu_pi_swap.csv"
+    jpsi2_path = folder_path + jpsi2
+    jpsi2_data = pd.read_csv(jpsi2_path)
+    
+    
+    jpsi2_MM  = peaking_functions.jpsiPM(dF_acc)
+    jpsi2_M_out = peaking_functions.jpsiPM(dF_acc_filtered_out)
+    
+    
+    jpsi2_BR = peaking_functions.jpsiPM(jpsi2_data)
+    mu,sigma = sp.stats.norm.fit(jpsi2_BR)
+    low = mu-1.3*sigma
+    high=mu+1.3*sigma
+    
+    dF_acc['jpsi2_MM'] = jpsi2_MM
+    dF_acc_filtered_out['jpsi2_MM'] = jpsi2_M_out
+    
+    #same applying threshold as for lambda that's why I've used the same function. 
+    dF_acc = apply_selection_threshold_for_lambda(dF_acc, 'jpsi2_MM', low, high)
+    dF_acc_filtered_out = apply_selection_threshold_for_lambda(dF_acc_filtered_out, 'jpsi2_MM', low, high, opposite = True)
+    
+
+
     print('Acceptance selection criteria done')
 
     acceptance_unsel = dF_acc_unfiltered

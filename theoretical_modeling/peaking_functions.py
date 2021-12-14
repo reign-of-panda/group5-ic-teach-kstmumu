@@ -136,4 +136,53 @@ def pKmumu_piTop(DF):
 
     return lambda_m
 
+def jpsiKM2(DF):
+    E_k2m = reconstruct('K', 'mu_plus', known_M['mu'], DF)
+    E_m2k = reconstruct('mu_plus', 'K', known_M['K'], DF)
+    mu_minus_PE = DF["mu_minus_PE"]
+    Pi_PE = DF["Pi_PE"]
+    
+    jpsi_E = mu_minus_PE + E_k2m
+    kstar_E = Pi_PE + E_m2k
+    
+    jpsi_PX = DF['mu_minus_PX'] + DF['K_PX']
+    jpsi_PY = DF['mu_minus_PY'] + DF['K_PY']
+    jpsi_PZ = DF['mu_minus_PZ'] + DF['K_PZ']
+    jpsi_P = np.sqrt(jpsi_PX**2 + jpsi_PY**2 + jpsi_PZ**2)
+    
+    kstar_PX = DF['Pi_PX'] + DF['mu_plus_PX']
+    kstar_PY = DF['Pi_PY'] + DF['mu_plus_PY']
+    kstar_PZ = DF['Pi_PZ'] + DF['mu_plus_PZ']
+    kstar_P = np.sqrt(kstar_PX**2 + kstar_PY**2 + kstar_PZ**2)
+    
+    jpsi_RM = Mass(jpsi_E, jpsi_P)
+
+    return jpsi_RM
+
+def jpsiPM(DF):
+    E_m2p = reconstruct('mu_minus', 'Pi', known_M['Pi'], DF)
+    E_p2m = reconstruct('Pi', 'mu_minus', known_M['mu'], DF)
+    K_PE = DF["K_PE"]
+    mu_plus_PE = DF["mu_plus_PE"]
+    
+    jpsi_E = mu_plus_PE + E_p2m
+    kstar_E = K_PE + E_m2p
+    
+    jpsi_PX = DF['mu_plus_PX'] + DF['Pi_PX']
+    jpsi_PY = DF['mu_plus_PY'] + DF['Pi_PY']
+    jpsi_PZ = DF['mu_plus_PZ'] + DF['Pi_PZ']
+    jpsi_P = np.sqrt(jpsi_PX**2 + jpsi_PY**2 + jpsi_PZ**2)
+    
+    kstar_PX = DF['K_PX'] + DF['mu_minus_PX']
+    kstar_PY = DF['K_PY'] + DF['mu_minus_PY']
+    kstar_PZ = DF['K_PZ'] + DF['mu_minus_PZ']
+    kstar_P = np.sqrt(kstar_PX**2 + kstar_PY**2 + kstar_PZ**2)
+    
+    jpsi_RM = Mass(jpsi_E, jpsi_P)
+    kstar_RM = Mass(kstar_E, kstar_P)
+    
+    jpsi_MM = DF["J_psi_MM"]
+    kstar_MM = DF["Kstar_MM"]
+    return jpsi_RM
+
     

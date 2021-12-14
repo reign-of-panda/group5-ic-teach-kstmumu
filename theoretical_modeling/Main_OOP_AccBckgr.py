@@ -116,6 +116,8 @@ class LHCb:
             lambda2 = "\pKmumu_piTok_kTop.csv"
             lambda2_path = self.folder_path + lambda2
             lambda2_data = pd.read_csv(lambda2_path)
+            
+            
             lambda2_M = peaking_functions.pKmumu_piTok_kTop(self.dF)
             lambda2_M_out = peaking_functions.pKmumu_piTok_kTop(self.dF_filtered_out)
             
@@ -130,7 +132,43 @@ class LHCb:
             # mask = (lambda2_M < low ) | (lambda2_M > high )
             self.dF = self.apply_selection_threshold_for_lambda(self.dF, 'lambda2_M', low, high)
             self.dF_filtered_out = self.apply_selection_threshold_for_lambda(self.dF_filtered_out, 'lambda2_M', low, high, opposite = True)
+            
+            
+            #K-muon swap 
+            jpsi1 = "/jpsi_mu_k_swap.csv"
+            jpsi1_path = self.folder_path + jpsi1
+            jpsi1_data = pd.read_csv(jpsi1_path)
+            
+            jpsi1_MM = peaking_functions.jpsiKM2(self.dF)
+            jpsi1_out = peaking_functions.jpsiKM2(self.dF_filtered_out)
+            
+            jpsi_BR= peaking_functions.jpsiKM2(jpsi1_data)
+            mu,sigma = sp.stats.norm.fit(jpsi_BR)
+            low = mu-2*sigma
+            high = mu+2*sigma
+            
+            self.dF['jpsi1_MM'] = jpsi1_MM
+            self.dF_filtered_out['jpsi1_MM'] = jpsi1_out
+            self.dF = self.apply_selection_threshold_for_lambda(self.dF, 'jpsi1_MM', low, high)
+            self.dF_filtered_out = self.apply_selection_threshold_for_lambda(self.dF_filtered_out, 'jpsi1_MM', low, high, opposite = True)
 
+            #K-pion swap 
+            jpsi2 = "/jpsi_mu_pi_swap.csv"
+            jpsi2_path = self.folder_path + jpsi2
+            jpsi2_data = pd.read_csv(jpsi2_path)
+            
+            jpsi2_MM = peaking_functions.jpsiPM(self.dF)
+            jpsi2_out = peaking_functions.jpsiPM(self.dF_filtered_out)
+            
+            jpsi2_BR= peaking_functions.jpsiPM(jpsi2_data)
+            mu,sigma = sp.stats.norm.fit(jpsi2_BR)
+            low = mu-1.3*sigma
+            high = mu+1.3*sigma
+            
+            self.dF['jpsi2_MM'] = jpsi2_MM
+            self.dF_filtered_out['jpsi2_MM'] = jpsi2_out
+            self.dF = self.apply_selection_threshold_for_lambda(self.dF, 'jpsi2_MM', low, high)
+            self.dF_filtered_out = self.apply_selection_threshold_for_lambda(self.dF_filtered_out, 'jpsi2_MM', low, high, opposite = True)
 
     def probability_assignment(self):
         """
